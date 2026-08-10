@@ -3,21 +3,32 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>UPSC QUIZs | Home</title>
+  <title>UPSC Hub | Home</title>
   <link rel="stylesheet" href="style.css">
 </head>
 <body class="home-page">
   <div class="hero-shell">
+    
+    <!-- Updated Header with Dropdown Navigation -->
     <header class="hero-header">
       <div class="brand-block">
-        <img src="ashoka.jpg" alt="Ashoka Logo" class="brand-logo">
+        <img src="ashoka.jpg" alt="Ashoka Logo" class="brand-logo" onerror="this.style.display='none'">
         <div>
           <p class="brand-kicker">Learning Platform</p>
-          <h1>UPSC QUIZs</h1>
+          <h1>UPSC Hub</h1>
         </div>
       </div>
+      
       <nav class="hero-nav">
         <a href="index.html">Home</a>
+        <div class="dropdown">
+          <a href="#" class="dropbtn">Study Materials ▾</a>
+          <div class="dropdown-content">
+            <a href="notes.html">Notes</a>
+            <a href="test_series.html">Test Series PDFs</a>
+            <a href="index.html">Quizzes</a>
+          </div>
+        </div>
       </nav>
     </header>
 
@@ -53,38 +64,31 @@
   </div>
 
   <script>
-    // Cleaned quizzes array - removed truncated entries and placeholders
-   const quizzes = [
-  // Test Series (Numbered)
-  { name: 'DTS 2701', file: '101.json', link: 'quiz.html?quiz=101.json', category: 'Test Series', lastUpdated: '2026-07-12' },
-  { name: 'DTS 2702', file: '102.json', link: 'quiz.html?quiz=102.json', category: 'Test Series', lastUpdated: '2026-07-20' },
-  { name: 'DTS 2703', file: '103.json', link: 'quiz.html?quiz=103.json', category: 'Test Series', lastUpdated: '2026-08-01' },
-  { name: 'DTS 2704', file: '104.json', link: 'quiz.html?quiz=104.json', category: 'Test Series', lastUpdated: '2026-08-02' },
-  { name: 'DTS 2705', file: '109.json', link: 'quiz.html?quiz=109.json', category: 'Test Series', lastUpdated: '2026-08-09' },
-  { name: 'DTS C2701', file: '108.json', link: 'quiz.html?quiz=108.json', category: 'Test Series', lastUpdated: '2026-08-01' },
-  { name: 'DTS C2702', file: '110.json', link: 'quiz.html?quiz=110.json', category: 'Test Series', lastUpdated: '2026-08-08' },
-  
-  // BA Digital Awareness Series
-  { name: 'Digital Awareness BA All IMP Q.P1', file: '105.json', link: 'quiz.html?quiz=105.json', category: 'BA', lastUpdated: '2026-08-02' },
-  { name: 'Digital Awareness BA All IMP Q.P2', file: '106.json', link: 'quiz.html?quiz=106.json', category: 'BA', lastUpdated: '2026-08-02' },
-  { name: 'Digital Awareness BA All IMP Q.P3', file: '107.json', link: 'quiz.html?quiz=107.json', category: 'BA', lastUpdated: '2026-08-02' },
-
-  // Economics MCQs
-  { name: 'Banking 50 MCQs', file: 'Banking 50 MCQs.json', link: 'quiz.html?quiz=Banking 50 MCQs.json', category: 'Economics', lastUpdated: '2026-08-02' },
-  { name: 'Basic Introduction of economics 50 MCQs', file: 'Basic Introduction of economics 50 MCQs.json', link: 'quiz.html?quiz=Basic Introduction of economics 50 MCQs.json', category: 'Economics', lastUpdated: '2026-08-02' },
-  { name: 'India\'s securities market 50 MCQs', file: 'India\'s securities market 50 MCQs.json', link: 'quiz.html?quiz=India\'s securities market 50 MCQs.json', category: 'Economics', lastUpdated: '2026-08-02' },
-  { name: 'Inflation 50 MCQs', file: 'Inflation 50 MCQs.json', link: 'quiz.html?quiz=Inflation 50 MCQs.json', category: 'Economics', lastUpdated: '2026-08-02' },
-  { name: 'Monetary policy 50 MCQs', file: 'Monetary policy 50 MCQs.json', link: 'quiz.html?quiz=Monetary policy 50 MCQs.json', category: 'Economics', lastUpdated: '2026-08-02' },
-  { name: 'Money and Money Supply 50 MCQs', file: 'Money and Money Supply 50 MCQs.json', link: 'quiz.html?quiz=Money and Money Supply 50 MCQs.json', category: 'Economics', lastUpdated: '2026-08-02' },
-  { name: 'National Income 50 MCQs', file: 'National Income 50 MCQs.json', link: 'quiz.html?quiz=National Income 50 MCQs.json', category: 'Economics', lastUpdated: '2026-08-02' },
-  { name: 'Tax 50 MCQs', file: 'Tax 50 MCQs.json', link: 'quiz.html?quiz=Tax 50 MCQs.json', category: 'Economics', lastUpdated: '2026-08-02' },
-  { name: 'Growth vs Development 50 MCQs', file: 'growth vs devlopment 50 MCQs.json', link: 'quiz.html?quiz=growth vs devlopment 50 MCQs.json', category: 'Economics', lastUpdated: '2026-08-02' },
-
-  // Practice SETs
-  { name: 'SET-A Mentorship 2027', file: 'SET-A.json', link: 'quiz.html?quiz=SET-A.json', category: 'Practice SETs', lastUpdated: '2026-06-02' },
-  { name: 'SET-C Mentorship 2027', file: 'SET-C.json', link: 'quiz.html?quiz=SET-C.json', category: 'Practice SETs', lastUpdated: '2026-06-02' },
-  { name: 'SET-D Mentorship 2027', file: 'SET-D.json', link: 'quiz.html?quiz=SET-D.json', category: 'Practice SETs', lastUpdated: '2026-06-02' }
-];
+    // Cleaned quizzes array - retained exactly as you had it
+    const quizzes = [
+      { name: 'DTS 2701', file: '101.json', link: 'quiz.html?quiz=101.json', category: 'Test Series', lastUpdated: '2026-07-12' },
+      { name: 'DTS 2702', file: '102.json', link: 'quiz.html?quiz=102.json', category: 'Test Series', lastUpdated: '2026-07-20' },
+      { name: 'DTS 2703', file: '103.json', link: 'quiz.html?quiz=103.json', category: 'Test Series', lastUpdated: '2026-08-01' },
+      { name: 'DTS 2704', file: '104.json', link: 'quiz.html?quiz=104.json', category: 'Test Series', lastUpdated: '2026-08-02' },
+      { name: 'DTS 2705', file: '109.json', link: 'quiz.html?quiz=109.json', category: 'Test Series', lastUpdated: '2026-08-09' },
+      { name: 'DTS C2701', file: '108.json', link: 'quiz.html?quiz=108.json', category: 'Test Series', lastUpdated: '2026-08-01' },
+      { name: 'DTS C2702', file: '110.json', link: 'quiz.html?quiz=110.json', category: 'Test Series', lastUpdated: '2026-08-08' },
+      { name: 'Digital Awareness BA All IMP Q.P1', file: '105.json', link: 'quiz.html?quiz=105.json', category: 'BA', lastUpdated: '2026-08-02' },
+      { name: 'Digital Awareness BA All IMP Q.P2', file: '106.json', link: 'quiz.html?quiz=106.json', category: 'BA', lastUpdated: '2026-08-02' },
+      { name: 'Digital Awareness BA All IMP Q.P3', file: '107.json', link: 'quiz.html?quiz=107.json', category: 'BA', lastUpdated: '2026-08-02' },
+      { name: 'Banking 50 MCQs', file: 'Banking 50 MCQs.json', link: 'quiz.html?quiz=Banking 50 MCQs.json', category: 'Economics', lastUpdated: '2026-08-02' },
+      { name: 'Basic Introduction of economics 50 MCQs', file: 'Basic Introduction of economics 50 MCQs.json', link: 'quiz.html?quiz=Basic Introduction of economics 50 MCQs.json', category: 'Economics', lastUpdated: '2026-08-02' },
+      { name: 'India\'s securities market 50 MCQs', file: 'India\'s securities market 50 MCQs.json', link: 'quiz.html?quiz=India\'s securities market 50 MCQs.json', category: 'Economics', lastUpdated: '2026-08-02' },
+      { name: 'Inflation 50 MCQs', file: 'Inflation 50 MCQs.json', link: 'quiz.html?quiz=Inflation 50 MCQs.json', category: 'Economics', lastUpdated: '2026-08-02' },
+      { name: 'Monetary policy 50 MCQs', file: 'Monetary policy 50 MCQs.json', link: 'quiz.html?quiz=Monetary policy 50 MCQs.json', category: 'Economics', lastUpdated: '2026-08-02' },
+      { name: 'Money and Money Supply 50 MCQs', file: 'Money and Money Supply 50 MCQs.json', link: 'quiz.html?quiz=Money and Money Supply 50 MCQs.json', category: 'Economics', lastUpdated: '2026-08-02' },
+      { name: 'National Income 50 MCQs', file: 'National Income 50 MCQs.json', link: 'quiz.html?quiz=National Income 50 MCQs.json', category: 'Economics', lastUpdated: '2026-08-02' },
+      { name: 'Tax 50 MCQs', file: 'Tax 50 MCQs.json', link: 'quiz.html?quiz=Tax 50 MCQs.json', category: 'Economics', lastUpdated: '2026-08-02' },
+      { name: 'Growth vs Development 50 MCQs', file: 'growth vs devlopment 50 MCQs.json', link: 'quiz.html?quiz=growth vs devlopment 50 MCQs.json', category: 'Economics', lastUpdated: '2026-08-02' },
+      { name: 'SET-A Mentorship 2027', file: 'SET-A.json', link: 'quiz.html?quiz=SET-A.json', category: 'Practice SETs', lastUpdated: '2026-06-02' },
+      { name: 'SET-C Mentorship 2027', file: 'SET-C.json', link: 'quiz.html?quiz=SET-C.json', category: 'Practice SETs', lastUpdated: '2026-06-02' },
+      { name: 'SET-D Mentorship 2027', file: 'SET-D.json', link: 'quiz.html?quiz=SET-D.json', category: 'Practice SETs', lastUpdated: '2026-06-02' }
+    ];
     let currentCategory = 'All';
     let currentSortOrder = 'latest';
     const grid = document.getElementById('quizGrid');
