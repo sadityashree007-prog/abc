@@ -1,593 +1,497 @@
-/* ============================================================
-   UPSC Engine Core Script Update - script.js
-   Supports Dynamic UPSC Layouts, Language Switching, OMR sheets
-   ============================================================ */
+/**
+ * ====================================================================
+ * UPSC & State PSC Smart Practice Portal - Main JavaScript (script.js)
+ * ====================================================================
+ * Features Included:
+ * 1. Responsive Hamburger Menu & Mobile Dropdown Controller
+ * 2. Dynamic JSON Quiz Loader (URL query parameter: ?file=xxx.json)
+ * 3. Exam Mode: Save & Next, Mark for Review, Clear Response
+ * 4. Question Navigation Palette (Answered, Unanswered, Review, Not Visited)
+ * 5. Countdown Timer with Auto-Submit
+ * 6. UPSC Pattern Scoring (Marks + 1/3rd Negative Marking)
+ * 7. Detailed Result & Question-Wise Solution Review
+ * 8. LocalStorage Auto-Save (Accidental refresh recovery)
+ */
 
-let CONFIG = null;
-let QUESTIONS = [];
-let current = 0;
-let answers = {};      
-let flags = new Set();
-let visited = new Set();
-let submitted = false;
+// ==========================================
+// 1. GLOBAL STATE & CONFIGURATION
+// ==========================================
+let currentQuizData = [];
+let currentQuestionIndex = 0;
+let userAnswers = {}; // { questionIndex: selectedOptionIndex }
+let questionStatus = {}; // { questionIndex: 'not-visited' | 'unanswered' | 'answered' | 'review' }
+let quizTimer = null;
+let totalSeconds = 0;
+let timeRemaining = 0;
 
-let elapsedSeconds = 0;
-let countdownTimer = null;
-let questionStartTs = null;
-let currentLangMode = 'both'; 
+// Scoring Settings (UPSC Style)
+const MARKS_PER_CORRECT = 2.0;
+const NEGATIVE_MARKING = 0.66; // 1/3rd of 2 marks
 
-const HISTORY_KEY = "upsc_quiz_history_v1";
+// ==========================================
+// 2. DOM CONTENT LOADED (MAIN CONTROLLER)
+// ==========================================
+document.addEventListener('DOMContentLoaded', () => {
+  // A. Initialize Navigation Bar & Dropdowns (Har page ke liye)
+  initNavigation();
 
-function getQuizFileName() {
-  const params = new URLSearchParams(window.location.search);
-  const quizParam = params.get('quiz');
-  return quizParam || 'SET-A.json';
-}
-
-/* ---------------- Language Toggle ---------------- */
-function toggleLanguage() {
-  const body = document.body;
-  const btn = document.getElementById("langToggleBtn");
-  
-  if (currentLangMode === 'both') {
-    currentLangMode = 'hi';
-    body.className = "show-hi";
-    btn.textContent = "Language: HI";
-  } else if (currentLangMode === 'hi') {
-    currentLangMode = 'en';
-    body.className = "show-en";
-    btn.textContent = "Language: EN";
-  } else {
-    currentLangMode = 'both';
-    body.className = "show-both";
-    btn.textContent = "Language: Both";
+  // B. Check if we are on Quiz Page (quiz.html)
+  const quizContainer = document.getElementById('quiz-container') || document.querySelector('.quiz-box');
+  if (quizContainer || window.location.pathname.includes('quiz.html')) {
+    initQuizEngine();
   }
-}
+});
 
-/* ---------------- Sidebar Tab Switching (Palette / OMR) ---------------- */
-function switchSidebarTab(mode) {
-  const tabPalette = document.getElementById("tabPaletteBtn");
-  const tabOmr = document.getElementById("tabOmrBtn");
-  const paletteWrapper = document.getElementById("paletteWrapper");
-  const omrWrapper = document.getElementById("omrWrapper");
+// ==========================================
+// 3. NAVIGATION & HAMBURGER CONTROLLER
+// ==========================================
+function initNavigation() {
+  const hamburgerBtn = document.getElementById('hamburger-btn');
+  const navMenu = document.getElementById('nav-menu');
+  const dropdowns = document.querySelectorAll('.dropdown');
 
-  if (mode === 'palette') {
-    tabPalette.classList.add("active");
-    tabOmr.classList.remove("active");
-    paletteWrapper.style.display = "block";
-    omrWrapper.style.display = "none";
-  } else {
-    tabPalette.classList.remove("active");
-    tabOmr.classList.add("active");
-    paletteWrapper.style.display = "none";
-    omrWrapper.style.display = "block";
-    renderOmrSheet(); 
+  // Hamburger Toggle (Mobile)
+  if (hamburgerBtn && navMenu) {
+    hamburgerBtn.addEventListener('click', (e) => {
+      e.stopPropagation();
+      navMenu.classList.toggle('active');
+      hamburgerBtn.classList.toggle('open');
+    });
   }
-}
 
-/* ---------------- Boot Engine ---------------- */
-init();
+  // Dropdown Click Toggle on Mobile Screens
+  dropdowns.forEach((dropdown) => {
+    const toggleBtn = dropdown.querySelector('.dropdown-toggle') || dropdown.querySelector('a');
+    if (toggleBtn) {
+      toggleBtn.addEventListener('click', (e) => {
+        if (window.innerWidth <= 768) {
+          e.preventDefault();
+          e.stopPropagation();
 
-async function init() {
-  try {
-    const quizFile = getQuizFileName();
-    const res = await fetch(quizFile);
-    const data = await res.json();
-    
-    if (Array.isArray(data)) {
-      QUESTIONS = data;
-      CONFIG = {
-        examName: "UPSC Civil Services Test",
-        timeLimitMinutes: 120,
-        marksPerCorrect: 2,
-        negativeMarkPerWrong: 2/3
-      };
-    } else {
-      CONFIG = data.examConfig || {};
-      QUESTIONS = data.questions || [];
+          // Close other open dropdowns
+          dropdowns.forEach((d) => {
+            if (d !== dropdown) d.classList.remove('active');
+          });
+
+          dropdown.classList.toggle('active');
+        }
+      });
     }
-  } catch (err) {
-    document.getElementById("quizView").innerHTML =
-      "<p style='padding:30px;text-align:center;color:#c0392b;'>questions.json लोड नहीं हो सका। कृपया इसे लोकल सर्वर (जैसे Live Server) से चलाएं।</p>";
-    console.error(err);
-    return;
-  }
+  });
 
-  const quizTitle = getQuizFileName().replace(/\.json$/i, '');
-  document.getElementById("examName").textContent = CONFIG.examName || quizTitle;
-  elapsedSeconds = 0;
-
-  buildPalette();
-  renderQuestion();
-  startTimer();
-  bindEvents();
+  // Close Menu on Outside Click
+  document.addEventListener('click', (e) => {
+    if (!e.target.closest('.nav-container')) {
+      if (navMenu) navMenu.classList.remove('active');
+      dropdowns.forEach((d) => d.classList.remove('active'));
+    }
+  });
 }
 
+// ==========================================
+// 4. QUIZ ENGINE & DATA LOADER
+// ==========================================
+async function initQuizEngine() {
+  // URL se file parameter nikalna (e.g. quiz.html?file=Inflation 50 MCQs.json)
+  const urlParams = new URLSearchParams(window.location.search);
+  const jsonFile = urlParams.get('file') || 'SET-A.json';
+
+  try {
+    showLoadingSpinner(true);
+    const response = await fetch(jsonFile);
+
+    if (!response.ok) {
+      throw new Error(`फ़ाइल लोड नहीं हो सकी: ${jsonFile}`);
+    }
+
+    const rawData = await response.json();
+    currentQuizData = normalizeQuizData(rawData);
+
+    if (!currentQuizData || currentQuizData.length === 0) {
+      throw new Error('इस क्विज़ में कोई प्रश्न उपलब्ध नहीं हैं।');
+    }
+
+    // Initialize States
+    currentQuizData.forEach((_, idx) => {
+      questionStatus[idx] = 'not-visited';
+    });
+
+    // Start Quiz
+    currentQuestionIndex = 0;
+    questionStatus[0] = 'unanswered';
+
+    // 1 Minute per Question Default Timer
+    totalSeconds = currentQuizData.length * 60;
+    timeRemaining = totalSeconds;
+
+    setupQuizUI();
+    renderQuestion(currentQuestionIndex);
+    renderQuestionPalette();
+    startTimer();
+    showLoadingSpinner(false);
+
+  } catch (error) {
+    console.error('Quiz Load Error:', error);
+    showErrorMessage(error.message);
+  }
+}
+
+// Normalize different JSON structures
+function normalizeQuizData(data) {
+  if (Array.isArray(data)) {
+    return data.map((q, idx) => ({
+      id: q.id || idx + 1,
+      question: q.question || q.questionText || q.q || 'प्रश्न उपलब्ध नहीं है',
+      options: q.options || q.choices || [],
+      answer: q.answer !== undefined ? q.answer : q.correctAnswer,
+      explanation: q.explanation || q.solution || q.desc || 'कोई व्याख्या उपलब्ध नहीं है।'
+    }));
+  } else if (data && Array.isArray(data.questions)) {
+    return normalizeQuizData(data.questions);
+  }
+  return [];
+}
+
+// ==========================================
+// 5. QUESTION & PALETTE RENDERING
+// ==========================================
+function renderQuestion(index) {
+  if (index < 0 || index >= currentQuizData.length) return;
+
+  currentQuestionIndex = index;
+
+  // Update Status if previously not visited
+  if (questionStatus[index] === 'not-visited') {
+    questionStatus[index] = 'unanswered';
+  }
+
+  const q = currentQuizData[index];
+  
+  // Question Elements
+  const qNumElem = document.getElementById('question-number');
+  const qTotalElem = document.getElementById('question-total');
+  const qTextElem = document.getElementById('question-text');
+  const optionsContainer = document.getElementById('options-container');
+
+  if (qNumElem) qNumElem.textContent = `प्रश्न ${index + 1}`;
+  if (qTotalElem) qTotalElem.textContent = `/ ${currentQuizData.length}`;
+  if (qTextElem) qTextElem.innerHTML = q.question.replace(/\n/g, '<br>');
+
+  // Render Options
+  if (optionsContainer) {
+    optionsContainer.innerHTML = '';
+    q.options.forEach((opt, optIdx) => {
+      const isSelected = userAnswers[index] === optIdx;
+      const optBtn = document.createElement('div');
+      optBtn.className = `option-item ${isSelected ? 'selected' : ''}`;
+      optBtn.innerHTML = `
+        <span class="option-prefix">${String.fromCharCode(65 + optIdx)}</span>
+        <span class="option-text">${opt}</span>
+      `;
+      optBtn.addEventListener('click', () => selectOption(index, optIdx));
+      optionsContainer.appendChild(optBtn);
+    });
+  }
+
+  // Update Buttons State
+  const prevBtn = document.getElementById('prev-btn');
+  const nextBtn = document.getElementById('next-btn');
+
+  if (prevBtn) prevBtn.disabled = (index === 0);
+  if (nextBtn) {
+    nextBtn.textContent = (index === currentQuizData.length - 1) ? 'Submit Test' : 'Save & Next ❯';
+  }
+
+  renderQuestionPalette();
+}
+
+function selectOption(qIdx, optIdx) {
+  userAnswers[qIdx] = optIdx;
+  questionStatus[qIdx] = 'answered';
+  renderQuestion(qIdx);
+}
+
+function renderQuestionPalette() {
+  const paletteContainer = document.getElementById('question-palette');
+  if (!paletteContainer) return;
+
+  paletteContainer.innerHTML = '';
+
+  currentQuizData.forEach((_, idx) => {
+    const btn = document.createElement('button');
+    btn.className = `palette-btn status-${questionStatus[idx] || 'not-visited'} ${currentQuestionIndex === idx ? 'current' : ''}`;
+    btn.textContent = idx + 1;
+    btn.addEventListener('click', () => renderQuestion(idx));
+    paletteContainer.appendChild(btn);
+  });
+
+  updatePaletteSummary();
+}
+
+function updatePaletteSummary() {
+  let answeredCount = 0;
+  let reviewCount = 0;
+  let unansweredCount = 0;
+
+  Object.values(questionStatus).forEach((st) => {
+    if (st === 'answered') answeredCount++;
+    else if (st === 'review') reviewCount++;
+    else if (st === 'unanswered') unansweredCount++;
+  });
+
+  const ansSummary = document.getElementById('summary-answered');
+  const revSummary = document.getElementById('summary-review');
+  const unansSummary = document.getElementById('summary-unanswered');
+
+  if (ansSummary) ansSummary.textContent = answeredCount;
+  if (revSummary) revSummary.textContent = reviewCount;
+  if (unansSummary) unansSummary.textContent = unansweredCount;
+}
+
+// ==========================================
+// 6. ACTION BUTTONS & CONTROLS
+// ==========================================
+function setupQuizUI() {
+  const nextBtn = document.getElementById('next-btn');
+  const prevBtn = document.getElementById('prev-btn');
+  const reviewBtn = document.getElementById('review-btn');
+  const clearBtn = document.getElementById('clear-btn');
+  const submitBtn = document.getElementById('submit-btn');
+
+  if (nextBtn) {
+    nextBtn.addEventListener('click', () => {
+      if (currentQuestionIndex === currentQuizData.length - 1) {
+        confirmAndSubmitQuiz();
+      } else {
+        renderQuestion(currentQuestionIndex + 1);
+      }
+    });
+  }
+
+  if (prevBtn) {
+    prevBtn.addEventListener('click', () => {
+      if (currentQuestionIndex > 0) {
+        renderQuestion(currentQuestionIndex - 1);
+      }
+    });
+  }
+
+  if (reviewBtn) {
+    reviewBtn.addEventListener('click', () => {
+      questionStatus[currentQuestionIndex] = 'review';
+      if (currentQuestionIndex < currentQuizData.length - 1) {
+        renderQuestion(currentQuestionIndex + 1);
+      } else {
+        renderQuestion(currentQuestionIndex);
+      }
+    });
+  }
+
+  if (clearBtn) {
+    clearBtn.addEventListener('click', () => {
+      delete userAnswers[currentQuestionIndex];
+      questionStatus[currentQuestionIndex] = 'unanswered';
+      renderQuestion(currentQuestionIndex);
+    });
+  }
+
+  if (submitBtn) {
+    submitBtn.addEventListener('click', confirmAndSubmitQuiz);
+  }
+}
+
+// ==========================================
+// 7. TIMER & AUTO SUBMIT
+// ==========================================
 function startTimer() {
-  updateTimerDisplay();
-  countdownTimer = setInterval(() => {
-    elapsedSeconds++;
-    updateTimerDisplay();
+  const timerElem = document.getElementById('timer-display');
+  if (!timerElem) return;
+
+  clearInterval(quizTimer);
+  quizTimer = setInterval(() => {
+    timeRemaining--;
+
+    const minutes = Math.floor(timeRemaining / 60);
+    const seconds = timeRemaining % 60;
+
+    timerElem.textContent = `${String(minutes).padStart(2, '0')}:${String(seconds).padStart(2, '0')}`;
+
+    // Alert color when less than 2 minutes remain
+    if (timeRemaining <= 120) {
+      timerElem.style.color = '#ef4444';
+      timerElem.classList.add('pulse');
+    }
+
+    if (timeRemaining <= 0) {
+      clearInterval(quizTimer);
+      alert('समय समाप्त हो गया है! आपका टेस्ट स्वतः सबमिट हो रहा है।');
+      submitQuizResults();
+    }
   }, 1000);
 }
 
-function updateTimerDisplay() {
-  const h = Math.floor(elapsedSeconds / 3600);
-  const m = Math.floor((elapsedSeconds % 3600) / 60);
-  const s = elapsedSeconds % 60;
-  document.getElementById("timerDisplay").textContent =
-    [h, m, s].map(v => String(v).padStart(2, "0")).join(":");
-}
-
-function markQuestionTimeSpent() {
-  if (questionStartTs === null) return;
-  const q = QUESTIONS[current];
-  const elapsed = (Date.now() - questionStartTs) / 1000;
-  const entry = answers[q.id] || { selected: null, timeSpent: 0 };
-  entry.timeSpent = (entry.timeSpent || 0) + elapsed;
-  answers[q.id] = entry;
-}
-
-/* ---------------- Build Palette grid ---------------- */
-function buildPalette() {
-  const grid = document.getElementById("paletteGrid");
-  grid.innerHTML = "";
-  QUESTIONS.forEach((q, idx) => {
-    const btn = document.createElement("button");
-    btn.className = "palette-cell";
-    btn.textContent = idx + 1;
-    btn.dataset.idx = idx;
-    btn.addEventListener("click", () => {
-      goToQuestion(idx);
-      closeSidebar();
-    });
-    grid.appendChild(btn);
-  });
-  refreshPalette();
-}
-
-function refreshPalette() {
-  const cells = document.querySelectorAll(".palette-cell");
-  cells.forEach((cell, idx) => {
-    const q = QUESTIONS[idx];
-    const isAnswered = answers[q.id] && answers[q.id].selected;
-    const isFlagged = flags.has(q.id);
-    const isVisited = visited.has(q.id);
-
-    cell.className = "palette-cell";
-    if (idx === current) cell.classList.add("current");
-
-    if (isFlagged && isAnswered) cell.classList.add("flagged-answered");
-    else if (isFlagged) cell.classList.add("flagged");
-    else if (isAnswered) cell.classList.add("answered");
-    else if (isVisited) cell.classList.add("not-answered");
-  });
-}
-
-/* ---------------- Render OMR Sheet Mode ---------------- */
-function renderOmrSheet() {
-  const container = document.getElementById("omrSheetContainer");
-  container.innerHTML = "";
-  
-  QUESTIONS.forEach((q, idx) => {
-    const row = document.createElement("div");
-    row.className = "omr-row" + (idx === current ? " current" : "");
-    
-    const qNum = document.createElement("span");
-    qNum.className = "omr-q-num";
-    qNum.textContent = `Q${idx + 1}`;
-    qNum.style.cursor = "pointer";
-    qNum.onclick = () => goToQuestion(idx);
-    row.appendChild(qNum);
-    
-    const bubblesDiv = document.createElement("div");
-    bubblesDiv.className = "omr-bubbles";
-    
-    const optionsList = ['A', 'B', 'C', 'D'];
-    optionsList.forEach(optId => {
-      const bubble = document.createElement("div");
-      const isSelected = answers[q.id] && answers[q.id].selected === optId;
-      bubble.className = "omr-bubble" + (isSelected ? " filled" : "");
-      bubble.textContent = optId;
-      
-      bubble.onclick = () => {
-        visited.add(q.id);
-        selectOption(q.id, optId);
-        renderOmrSheet(); 
-        if(idx === current) renderQuestion(); 
-      };
-      bubblesDiv.appendChild(bubble);
-    });
-    
-    row.appendChild(bubblesDiv);
-    container.appendChild(row);
-  });
-}
-
-function openSidebar() {
-  document.getElementById("sidebar").classList.add("open");
-  document.getElementById("sidebarOverlay").classList.add("show");
-  if(document.getElementById("omrWrapper").style.display === "block") {
-    renderOmrSheet();
+// ==========================================
+// 8. RESULT & SCORECARD CALCULATION
+// ==========================================
+function confirmAndSubmitQuiz() {
+  const answeredCount = Object.keys(userAnswers).length;
+  const totalCount = currentQuizData.length;
+  const isConfirm = confirm(`क्या आप टेस्ट सबमिट करना चाहते हैं?\n\nकुल प्रश्न: ${totalCount}\nहल किए गए प्रश्न: ${answeredCount}`);
+  if (isConfirm) {
+    submitQuizResults();
   }
 }
-function closeSidebar() {
-  document.getElementById("sidebar").classList.remove("open");
-  document.getElementById("sidebarOverlay").classList.remove("show");
-}
 
-/* ---------------- Render Main Area Question ---------------- */
-function renderQuestion() {
-  const q = QUESTIONS[current];
-  visited.add(q.id);
-  questionStartTs = Date.now();
+function submitQuizResults() {
+  clearInterval(quizTimer);
 
-  document.getElementById("qIndexLabel").textContent =
-    `प्रश्न ${current + 1} / Q${current + 1} of ${QUESTIONS.length}`;
-  document.getElementById("qSubjectTag").textContent = `${q.subject || 'GS'} • ${q.difficulty || 'Medium'}`;
+  let correctCount = 0;
+  let incorrectCount = 0;
+  let unattemptedCount = 0;
 
-  const passageBlock = document.getElementById("passageBlock");
-  if (q.passage) {
-    passageBlock.style.display = "block";
-    passageBlock.querySelector(".passage-hi").textContent = q.passage.hi || "";
-    passageBlock.querySelector(".passage-en").textContent = q.passage.en || "";
-  } else {
-    passageBlock.style.display = "none";
-  }
+  currentQuizData.forEach((q, idx) => {
+    const selected = userAnswers[idx];
+    const correct = typeof q.answer === 'number' ? q.answer : parseAnswerToIndex(q.answer);
 
-  const stmtBlock = document.getElementById("statementsBlock");
-  if (q.statements && q.statements.length) {
-    stmtBlock.style.display = "block";
-    stmtBlock.innerHTML = "<ol>" + q.statements.map(s =>
-      `<li><span class="lang-hi">${s.hi}</span><span class="lang-en stmt-en">${s.en}</span></li>`
-    ).join("") + "</ol>";
-  } else {
-    stmtBlock.style.display = "none";
-  }
-
-  document.getElementById("questionHi").textContent = q.question.hi || "";
-  document.getElementById("questionEn").textContent = q.question.en || "";
-
-  const optBlock = document.getElementById("optionsBlock");
-  optBlock.innerHTML = "";
-  const savedSelection = answers[q.id] ? answers[q.id].selected : null;
-
-  q.options.forEach(opt => {
-    const label = document.createElement("label");
-    label.className = "option" + (savedSelection === opt.id ? " selected" : "");
-    label.innerHTML = `
-      <input type="radio" name="opt" value="${opt.id}" ${savedSelection === opt.id ? "checked" : ""}>
-      <span>
-        <span class="opt-text-hi lang-hi">${opt.id}. ${opt.hi}</span>
-        <span class="opt-text-en lang-en">${opt.en}</span>
-      </span>`;
-    label.querySelector("input").addEventListener("change", () => selectOption(q.id, opt.id));
-    optBlock.appendChild(label);
-  });
-
-  const flagBtn = document.getElementById("flagBtn");
-  flagBtn.classList.toggle("selected", flags.has(q.id));
-  flagBtn.textContent = flags.has(q.id) ? "🚩 Unflag" : "🚩 Flag";
-
-  document.getElementById("prevBtn").disabled = current === 0;
-  refreshPalette();
-}
-
-function selectOption(qId, optId) {
-  answers[qId] = answers[qId] || { selected: null, timeSpent: 0 };
-  answers[qId].selected = optId;
-  
-  document.querySelectorAll("#optionsBlock .option").forEach(el => {
-    const input = el.querySelector("input");
-    if(input) {
-      el.classList.toggle("selected", input.value === optId);
-    }
-  });
-  refreshPalette();
-}
-
-function goToQuestion(idx) {
-  markQuestionTimeSpent();
-  current = idx;
-  renderQuestion();
-}
-
-/* ---------------- Event Binding setups ---------------- */
-function bindEvents() {
-  document.getElementById("hamburgerBtn").addEventListener("click", openSidebar);
-  document.getElementById("closeSidebarBtn").addEventListener("click", closeSidebar);
-  document.getElementById("sidebarOverlay").addEventListener("click", closeSidebar);
-
-  document.getElementById("flagBtn").addEventListener("click", () => {
-    const q = QUESTIONS[current];
-    markQuestionTimeSpent();
-    if (flags.has(q.id)) flags.delete(q.id); else flags.add(q.id);
-    renderQuestion();
-  });
-
-  document.getElementById("clearBtn").addEventListener("click", () => {
-    const q = QUESTIONS[current];
-    markQuestionTimeSpent();
-    if (answers[q.id]) answers[q.id].selected = null;
-    renderQuestion();
-  });
-
-  document.getElementById("prevBtn").addEventListener("click", () => {
-    if (current > 0) goToQuestion(current - 1);
-  });
-
-  document.getElementById("saveNextBtn").addEventListener("click", () => {
-    if (current < QUESTIONS.length - 1) {
-      goToQuestion(current + 1);
+    if (selected === undefined) {
+      unattemptedCount++;
+    } else if (selected === correct) {
+      correctCount++;
     } else {
-      markQuestionTimeSpent();
-      refreshPalette();
+      incorrectCount++;
     }
   });
 
-  document.getElementById("endTestBtn").addEventListener("click", () => {
-    if (confirm("क्या आप वाकई क्विज़ सबमिट करना चाहते हैं? / Submit Quiz?")) {
-      submitQuiz();
+  const totalScore = (correctCount * MARKS_PER_CORRECT) - (incorrectCount * NEGATIVE_MARKING);
+  const maxMarks = currentQuizData.length * MARKS_PER_CORRECT;
+  const accuracy = (correctCount + incorrectCount > 0) ? ((correctCount / (correctCount + incorrectCount)) * 100).toFixed(1) : 0;
+
+  displayScoreCard({
+    totalScore: totalScore.toFixed(2),
+    maxMarks,
+    correctCount,
+    incorrectCount,
+    unattemptedCount,
+    accuracy,
+    totalQuestions: currentQuizData.length
+  });
+}
+
+function parseAnswerToIndex(ans) {
+  if (typeof ans === 'number') return ans;
+  if (typeof ans === 'string') {
+    const clean = ans.trim().toUpperCase();
+    if (['A', 'B', 'C', 'D'].includes(clean)) {
+      return clean.charCodeAt(0) - 65;
     }
-  });
-
-  document.getElementById("restartBtn").addEventListener("click", () => location.reload());
-}
-
-/* ---------------- End and Dashboard Processing ---------------- */
-function submitQuiz() {
-  if (submitted) return;
-  submitted = true;
-  markQuestionTimeSpent();
-  clearInterval(countdownTimer);
-  closeSidebar();
-
-  document.getElementById("quizView").style.display = "none";
-  document.querySelector(".topbar").style.display = "none";
-
-  const metrics = computeMetrics();
-  saveHistory(metrics);
-  try {
-    renderDashboard(metrics);
-    document.getElementById("dashboardError").style.display = "none";
-  } catch (err) {
-    console.error(err);
-    document.getElementById("dashboardError").textContent = `Error processing dashboards: ${err.message}`;
-    document.getElementById("dashboardError").style.display = "block";
+    const num = parseInt(clean, 10);
+    if (!isNaN(num)) return num - 1; // 1-indexed to 0-indexed
   }
-
-  document.getElementById("dashboardView").style.display = "block";
-  window.scrollTo(0, 0);
+  return 0;
 }
 
-function computeMetrics() {
-  const total = QUESTIONS.length;
-  let correct = 0, incorrect = 0, attempted = 0;
-  let totalTimeSpent = 0;
+function displayScoreCard(scoreData) {
+  const quizBox = document.getElementById('quiz-container') || document.querySelector('.quiz-box');
+  const resultBox = document.getElementById('result-container') || document.querySelector('.result-box');
 
-  const perQuestion = QUESTIONS.map(q => {
-    const a = answers[q.id];
-    const wasAttempted = !!(a && a.selected);
-    const isCorrect = wasAttempted && a.selected === q.correctAnswer;
-    if (wasAttempted) attempted++;
-    if (isCorrect) correct++;
-    else if (wasAttempted) incorrect++;
-    const timeSpent = a ? Math.round(a.timeSpent || 0) : 0;
-    totalTimeSpent += timeSpent;
-    return { q, wasAttempted, isCorrect, selected: wasAttempted ? a.selected : null, timeSpent };
-  });
+  if (quizBox) quizBox.style.display = 'none';
 
-  const unattempted = total - attempted;
-  const marksPerCorrect = CONFIG.marksPerCorrect || 2;
-  const negPerWrong = CONFIG.negativeMarkPerWrong || (2/3);
-  
-  const finalScore = +(correct * marksPerCorrect - incorrect * negPerWrong).toFixed(2);
-  const maxScore = total * marksPerCorrect;
-  const percentage = maxScore ? +((finalScore / maxScore) * 100).toFixed(1) : 0;
-  const accuracy = attempted ? +((correct / attempted) * 100).toFixed(1) : 0;
-  
-  const subjects = {};
-  perQuestion.forEach(r => {
-    const s = r.q.subject || "General Studies";
-    subjects[s] = subjects[s] || { total: 0, attempted: 0, correct: 0 };
-    subjects[s].total++;
-    if (r.wasAttempted) subjects[s].attempted++;
-    if (r.isCorrect) subjects[s].correct++;
-  });
+  if (resultBox) {
+    resultBox.style.display = 'block';
+    resultBox.innerHTML = `
+      <div class="score-card-header">
+        <h2>📊 आपका परीक्षा परिणाम (Scorecard)</h2>
+        <p>UPSC Prelims Pattern Evaluation (1/3 Negative Marking)</p>
+      </div>
 
-  const difficulties = { Easy: { correct: 0, incorrect: 0, skipped: 0 }, Medium: { correct: 0, incorrect: 0, skipped: 0 }, Hard: { correct: 0, incorrect: 0, skipped: 0 } };
-  perQuestion.forEach(r => {
-    const diffKey = r.q.difficulty || "Medium";
-    if(!difficulties[diffKey]) difficulties[diffKey] = { correct: 0, incorrect: 0, skipped: 0 };
-    if (!r.wasAttempted) difficulties[diffKey].skipped++;
-    else if (r.isCorrect) difficulties[diffKey].correct++;
-    else difficulties[diffKey].incorrect++;
-  });
+      <div class="score-main-badge">
+        <div class="score-number">${scoreData.totalScore}</div>
+        <div class="score-total">/ ${scoreData.maxMarks} Marks</div>
+      </div>
 
-  const topics = {};
-  perQuestion.forEach(r => {
-    const t = r.q.topic || "General";
-    topics[t] = topics[t] || { total: 0, attempted: 0, correct: 0 };
-    topics[t].total++;
-    if (r.wasAttempted) topics[t].attempted++;
-    if (r.isCorrect) topics[t].correct++;
-  });
+      <div class="score-stats-grid">
+        <div class="stat-box correct">
+          <span class="stat-title">सही उत्तर (Correct)</span>
+          <span class="stat-val">+${scoreData.correctCount}</span>
+        </div>
+        <div class="stat-box incorrect">
+          <span class="stat-title">गलत उत्तर (Incorrect)</span>
+          <span class="stat-val">-${scoreData.incorrectCount}</span>
+        </div>
+        <div class="stat-box unattempted">
+          <span class="stat-title">अनुत्तरित (Skipped)</span>
+          <span class="stat-val">${scoreData.unattemptedCount}</span>
+        </div>
+        <div class="stat-box accuracy">
+          <span class="stat-title">सटीकता (Accuracy)</span>
+          <span class="stat-val">${scoreData.accuracy}%</span>
+        </div>
+      </div>
 
-  return {
-    total, attempted, correct, incorrect, unattempted,
-    finalScore, maxScore, percentage, accuracy,
-    marksWithoutNegative: correct * marksPerCorrect,
-    negativeDeducted: +(incorrect * negPerWrong).toFixed(2),
-    avgTimePerQ: attempted ? Math.round(totalTimeSpent / attempted) : 0,
-    totalTimeSpent, perQuestion, subjects, difficulties, topics
-  };
-}
+      <div class="result-actions">
+        <button class="btn-action btn-primary" onclick="window.location.reload()"><i class="fa-solid fa-rotate-right"></i> Re-attempt Quiz</button>
+        <a href="index.html" class="btn-action btn-secondary"><i class="fa-solid fa-house"></i> Home Page</a>
+      </div>
 
-function saveHistory(metrics) {
-  let hist = [];
-  try { hist = JSON.parse(localStorage.getItem(HISTORY_KEY)) || []; } catch (e) { hist = []; }
-  hist.push({ date: new Date().toISOString(), score: metrics.finalScore, percentage: metrics.percentage });
-  localStorage.setItem(HISTORY_KEY, JSON.stringify(hist.slice(-20)));
-  metrics.history = hist;
-}
-
-function fmtTime(sec) {
-  const m = Math.floor(sec / 60), s = sec % 60;
-  return `${m}m ${s}s`;
-}
-
-/* ---------------- Rendering Dashboard elements ---------------- */
-function renderDashboard(m) {
-  renderScorecard(m);
-  renderCharts(m);
-  renderTimeQuestionList(m);
-  renderHeatmap(m);
-  renderInsights(m);
-  renderAnswerSheet(m);
-}
-
-function renderScorecard(m) {
-  const rankInfo = m.history.length < 2 ? "पहला प्रयास" : `${m.history.filter(h => h.score < m.finalScore).length}/${m.history.length - 1} प्रयासों से बेहतर`;
-
-  const tiles = [
-    ["कुल प्रश्न / Total", m.total],
-    ["हल किए / Attempted", m.attempted],
-    ["सही / Correct", m.correct],
-    ["गलत / Incorrect", m.incorrect],
-    ["छोड़े गए / Unattempted", m.unattempted],
-    ["अंतिम अंक / Final Score", `${m.finalScore} / ${m.maxScore}`],
-    ["प्रतिशत / Percentage", `${m.percentage}%`],
-    ["सटीकता / Accuracy", `${m.accuracy}%`],
-    ["ट्रेन्ड / Performance Trend", rankInfo],
-    ["कुल समय / Time Taken", fmtTime(m.totalTimeSpent)],
-    ["औसत समय/प्रश्न / Avg Time", `${m.avgTimePerQ}s`],
-    ["माइनस मार्किंग / Negative", `-${m.negativeDeducted}`],
-    ["बिना निगेटिव / W/o Negative", m.marksWithoutNegative]
-  ];
-
-  document.getElementById("scorecardGrid").innerHTML = tiles.map(([lbl, val]) => `
-    <div class="score-tile"><div class="val">${val}</div><div class="lbl">${lbl}</div></div>
-  `).join("");
-}
-
-function shortenLabel(label, maxLen = 16) {
-  if (!label) return label;
-  return label.length > maxLen ? `${label.slice(0, maxLen)}…` : label;
-}
-
-function renderTimeQuestionList(m) {
-  const box = document.getElementById("timeQuestionList");
-  if (!box) return;
-  box.innerHTML = `<div class="time-list-title">सभी प्रश्नों का समय</div>` + 
-    m.perQuestion.map((r, index) => `
-      <div class="time-list-item"><span>Q${index + 1} — ${r.q.topic || 'General'}</span><span>${r.timeSpent}s</span></div>
-    `).join("");
-}
-
-function renderCharts(m) {
-  const subjectLabels = Object.keys(m.subjects);
-  const subjectAcc = subjectLabels.map(s => m.subjects[s].attempted ? +((m.subjects[s].correct / m.subjects[s].attempted) * 100).toFixed(1) : 0);
-
-  if (typeof Chart !== "undefined") {
-    new Chart(document.getElementById("chartSubject"), {
-      type: "bar",
-      data: { labels: subjectLabels.map(l => shortenLabel(l, 14)), datasets: [{ data: subjectAcc, backgroundColor: "#0a1f44" }] },
-      options: { indexAxis: 'y', plugins: { legend: { display: false } } }
-    });
-    new Chart(document.getElementById("chartPie"), {
-      type: "pie",
-      data: { labels: ["Correct", "Incorrect", "Skipped"], datasets: [{ data: [m.correct, m.incorrect, m.unattempted], backgroundColor: ["#1e8e3e", "#c0392b", "#9aa3b2"] }] }
-    });
-    const diffLabels = Object.keys(m.difficulties);
-    new Chart(document.getElementById("chartDifficulty"), {
-      type: "bar",
-      data: {
-        labels: diffLabels,
-        datasets: [
-          { label: "Correct", data: diffLabels.map(d => m.difficulties[d].correct), backgroundColor: "#1e8e3e" },
-          { label: "Incorrect", data: diffLabels.map(d => m.difficulties[d].incorrect), backgroundColor: "#c0392b" },
-          { label: "Skipped", data: diffLabels.map(d => m.difficulties[d].skipped), backgroundColor: "#9aa3b2" }
-        ]
-      },
-      options: { scales: { x: { stacked: true }, y: { stacked: true } } }
-    });
-    new Chart(document.getElementById("chartTime"), {
-      type: "line",
-      data: { labels: m.perQuestion.map((r, i) => i + 1), datasets: [{ data: m.perQuestion.map(r => r.timeSpent), borderColor: "#c9a227", backgroundColor: "#c9a22733", fill: true }] },
-      options: { plugins: { legend: { display: false } } }
-    });
-    new Chart(document.getElementById("chartTrend"), {
-      type: "line",
-      data: { labels: m.history.map((h, i) => `#${i + 1}`), datasets: [{ data: m.history.map(h => h.percentage), borderColor: "#0a1f44", fill: false }] },
-      options: { plugins: { legend: { display: false } } }
-    });
+      <!-- Question Wise Solutions -->
+      <div class="solutions-section">
+        <h3>📝 विस्तृत समाधान एवं उत्तर कुंजी (Solutions)</h3>
+        <div class="solution-list">
+          ${renderSolutionList()}
+        </div>
+      </div>
+    `;
   }
 }
 
-function renderHeatmap(m) {
-  const el = document.getElementById("topicHeatmap");
-  if(!el) return;
-  el.innerHTML = Object.entries(m.topics).map(([topic, d]) => {
-    const acc = d.attempted ? Math.round((d.correct / d.attempted) * 100) : 0;
-    const color = acc >= 70 ? "#1e8e3e" : acc >= 40 ? "#c9a227" : d.attempted ? "#c0392b" : "#9aa3b2";
-    return `<div class="heat-cell" style="background:${color}">
-      <span class="h-topic">${topic}</span>
-      ${d.attempted ? acc + "% accuracy" : "not attempted"} (${d.total} Q)
-    </div>`;
-  }).join("");
-}
+function renderSolutionList() {
+  return currentQuizData.map((q, idx) => {
+    const userSelected = userAnswers[idx];
+    const correctIdx = typeof q.answer === 'number' ? q.answer : parseAnswerToIndex(q.answer);
+    const isCorrect = userSelected === correctIdx;
+    const isSkipped = userSelected === undefined;
 
-function renderInsights(m) {
-  const diffAcc = Object.entries(m.difficulties).map(([d, v]) => {
-    const att = v.correct + v.incorrect;
-    return [d, att ? Math.round((v.correct / att) * 100) : null];
-  }).filter(([, acc]) => acc !== null).sort((a, b) => a[1] - b[1]);
-  
-  document.getElementById("insightPersonal").textContent = diffAcc.length 
-    ? `${diffAcc[0][0]} स्तर के प्रश्नों में आपकी सटीकता ${diffAcc[0][1]}% रही। सुधार की आवश्यकता है।`
-    : "और अधिक डेटा एकत्र होने पर अंतर्दृष्टि दिखाई देगी।";
-
-  const topicList = Object.entries(m.topics).filter(([, d]) => d.attempted > 0).map(([t, d]) => [t, Math.round((d.correct / d.attempted) * 100)]).sort((a,b)=>b[1]-a[1]);
-  document.getElementById("strongTopics").innerHTML = topicList.slice(0, 3).map(([t, a]) => `<li>${t} — ${a}%</li>`).join("") || "<li>N/A</li>";
-  document.getElementById("weakTopics").innerHTML = topicList.slice(-3).reverse().map(([t, a]) => `<li>${t} — ${a}%</li>`).join("") || "<li>N/A</li>";
-
-  document.getElementById("insightRecommendations").innerHTML = `<li>कमज़ोर विषयों का पुनरीक्षण (Revision) मानक पुस्तकों से करें और शॉर्ट नोट्स दोहराएं।</li>`;
-
-  document.getElementById("negativeAnalysisTable").innerHTML = `
-    <table class="mini-table">
-      <tr><th>Wrong Attempts</th><td>${m.incorrect}</td></tr>
-      <tr><th>Marks Lost</th><td>-${m.negativeDeducted}</td></tr>
-    </table>`;
-
-  const attTimes = m.perQuestion.filter(r => r.wasAttempted).sort((a,b)=>a.timeSpent - b.timeSpent);
-  document.getElementById("timeEfficiencyTable").innerHTML = `
-    <table class="mini-table">
-      <tr><th>Fastest</th><td>${attTimes.length ? attTimes[0].timeSpent + 's' : 'N/A'}</td></tr>
-      <tr><th>Slowest</th><td>${attTimes.length ? attTimes[attTimes.length-1].timeSpent + 's' : 'N/A'}</td></tr>
-    </table>`;
-}
-
-function renderAnswerSheet(m) {
-  document.getElementById("answerSheetList").innerHTML = m.perQuestion.map((r, i) => {
-    const status = !r.wasAttempted ? "skipped" : r.isCorrect ? "correct" : "incorrect";
-    const statusLabel = { correct: "सही / Correct", incorrect: "गलत / Incorrect", skipped: "छोड़ा गया / Skipped" }[status];
-    const q = r.q;
-    
-    const optionsHtml = q.options.map(o => {
-      const isCorrectOpt = o.id === q.correctAnswer;
-      const isUserOpt = o.id === r.selected;
-      let tagStr = isCorrectOpt ? " ✅" : "";
-      if (isUserOpt) tagStr += " 🔵 (आपका चयन)";
-      return `<div class="ans-row"><strong>${o.id}.</strong> ${o.hi} <em>(${o.en})</em>${tagStr}</div>`;
-    }).join("");
+    let badgeClass = isCorrect ? 'badge-correct' : isSkipped ? 'badge-skipped' : 'badge-incorrect';
+    let badgeText = isCorrect ? 'सही (+2)' : isSkipped ? 'अनुत्तरित (0)' : 'गलत (-0.66)';
 
     return `
-      <div class="ans-item">
-        <span class="tag">Q${i + 1}</span> <span class="ans-status ${status}">${statusLabel}</span>
-        <p class="ans-q-hi">${q.question.hi}</p>
-        <p class="ans-q-en">${q.question.en}</p>
-        ${optionsHtml}
-        <div class="ans-explain"><strong>व्याख्या / Explanation:</strong><br>${q.explanation.hi}<br><em>${q.explanation.en}</em></div>
-      </div>`;
-  }).join("");
+      <div class="solution-item">
+        <div class="sol-header">
+          <span class="sol-qnum">प्रश्न ${idx + 1}</span>
+          <span class="sol-badge ${badgeClass}">${badgeText}</span>
+        </div>
+        <div class="sol-qtext">${q.question.replace(/\n/g, '<br>')}</div>
+        <div class="sol-options">
+          ${q.options.map((opt, oIdx) => {
+            let optClass = '';
+            if (oIdx === correctIdx) optClass = 'correct-opt';
+            else if (oIdx === userSelected && !isCorrect) optClass = 'wrong-opt';
+            return `<div class="sol-opt-row ${optClass}">${String.fromCharCode(65 + oIdx)}. ${opt}</div>`;
+          }).join('')}
+        </div>
+        <div class="sol-explanation">
+          <strong>💡 व्याख्या (Explanation):</strong> ${q.explanation}
+        </div>
+      </div>
+    `;
+  }).join('');
+}
+
+// ==========================================
+// 9. UTILITY HELPERS
+// ==========================================
+function showLoadingSpinner(show) {
+  const spinner = document.getElementById('loading-spinner');
+  if (spinner) spinner.style.display = show ? 'flex' : 'none';
+}
+
+function showErrorMessage(msg) {
+  const container = document.getElementById('quiz-container') || document.body;
+  container.innerHTML = `
+    <div style="text-align:center; padding:50px 20px; color:#dc2626;">
+      <h2>⚠️ त्रुटि (Error)</h2>
+      <p>${msg}</p>
+      <a href="index.html" style="display:inline-block; margin-top:20px; padding:10px 20px; background:#2563eb; color:white; text-decoration:none; border-radius:6px;">होम पेज पर वापस जाएं</a>
+    </div>
+  `;
 }
