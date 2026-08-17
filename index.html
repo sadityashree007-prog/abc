@@ -3,151 +3,686 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>UPSC QUIZs | Home</title>
-  <link rel="stylesheet" href="style.css">
-</head>
-<body class="home-page">
-  <div class="hero-shell">
-    <header class="hero-header">
-      <div class="brand-block">
-        <img src="ashoka.jpg" alt="Ashoka Logo" class="brand-logo">
-        <div>
-          <p class="brand-kicker">Learning Platform</p>
-          <h1>UPSC QUIZs</h1>
-        </div>
-      </div>
-      <nav class="hero-nav">
-        <a href="index.html">Home</a>
-      </nav>
-    </header>
-
-    <main class="hero-content">
-      <section class="hero-copy">
-        <p class="section-label">Smart Practice Hub</p>
-        <h2>Explore multiple quizzes with one clean experience.</h2>
-        <p class="hero-text">Choose a quiz set below to begin. Filter by exam type or sort as per your preference.</p>
-      </section>
-
-      <div class="controls-wrapper">
-        <div class="filter-tabs" id="filterTabs">
-          <button class="tab-btn active" onclick="handleFilter('All', event)">All Tests</button>
-          <button class="tab-btn" onclick="handleFilter('Practice SETs', event)">Practice SETs</button>
-          <button class="tab-btn" onclick="handleFilter('PYQ', event)">PYQs</button>
-          <button class="tab-btn" onclick="handleFilter('Economics', event)">Economics</button>
-          <button class="tab-btn" onclick="handleFilter('Test Series', event)">Test Series</button>
-          <button class="tab-btn" onclick="handleFilter('BA', event)">BA</button>
-          <button class="tab-btn" onclick="handleFilter('Polity', event)">Polity</button>
-          <button class="tab-btn" onclick="handleFilter('S&T', event)">S&T</button>
-          <button class="tab-btn" onclick="handleFilter('History', event)">History</button>
-          <button class="tab-btn" onclick="handleFilter('Geography', event)">Geography</button>
-          <button class="tab-btn" onclick="handleFilter('EN&EC', event)">EN&EC</button>
-          <button class="tab-btn" onclick="handleFilter('Gen.Sci.', event)">Gen.Sci.</button>
-        </div>
-        
-        <div class="sort-box">
-          <label for="quizSort">Sort By: </label>
-          <select id="quizSort" onchange="handleSort(this.value)">
-            <option value="latest">Last Updated (नवीनतम)</option>
-            <option value="az">Alphabetical (A - Z)</option>
-            <option value="za">Alphabetical (Z - A)</option>
-          </select>
-        </div>
-      </div>
-
-      <section class="quiz-grid" id="quizGrid"></section>
-    </main>
-  </div>
-
-  <script>
-    // Cleaned quizzes array - removed truncated entries and placeholders
-   const quizzes = [
-  // Test Series (Numbered)
-  { name: 'DTS 2701', file: '101.json', link: 'quiz.html?quiz=101.json', category: 'Test Series', lastUpdated: '2026-07-12' },
-  { name: 'DTS 2702', file: '102.json', link: 'quiz.html?quiz=102.json', category: 'Test Series', lastUpdated: '2026-07-20' },
-  { name: 'DTS 2703', file: '103.json', link: 'quiz.html?quiz=103.json', category: 'Test Series', lastUpdated: '2026-08-01' },
-  { name: 'DTS 2704', file: '104.json', link: 'quiz.html?quiz=104.json', category: 'Test Series', lastUpdated: '2026-08-02' },
-  { name: 'DTS 2705', file: '109.json', link: 'quiz.html?quiz=109.json', category: 'Test Series', lastUpdated: '2026-08-09' },
-  { name: 'DTS C2701', file: '108.json', link: 'quiz.html?quiz=108.json', category: 'Test Series', lastUpdated: '2026-08-01' },
-  { name: 'DTS C2702', file: '110.json', link: 'quiz.html?quiz=110.json', category: 'Test Series', lastUpdated: '2026-08-08' },
-
-  // PYQ
-  { name: 'Commissions, Councils, Tribunals, Schedules & Articles', file: 'CommissionsCouncilsTribunalsSchedulesArticles.json', link: 'quiz.html?quiz=CommissionsCouncilsTribunalsSchedulesArticles.json', category: 'Polity', lastUpdated: '2026-08-16' },
-  { name: 'Constitutional Amendments & Local Self Government', file: 'ConstitutionalAmendmentsLocalSelfGovernment.json', link: 'quiz.html?quiz=ConstitutionalAmendmentsLocalSelfGovernment.json', category: 'Polity', lastUpdated: '2026-08-16' },
-  { name: 'Executive', file: 'Executive.json', link: 'quiz.html?quiz=Executive.json', category: 'Polity', lastUpdated: '2026-08-16' },
-  { name: 'Fundamental Duties & DPSP', file: 'FundamentaldutiesDPSP.json', link: 'quiz.html?quiz=FundamentaldutiesDPSP.json', category: 'Polity', lastUpdated: '2026-08-16' },
-  { name: 'Fundamental Rights', file: 'Fundamentalrights.json', link: 'quiz.html?quiz=Fundamentalrights.json', category: 'Polity', lastUpdated: '2026-08-16' },
-  { name: 'Judiciary', file: 'Judiciary.json', link: 'quiz.html?quiz=Judiciary.json', category: 'Polity', lastUpdated: '2026-08-16' },
-  { name: 'Legislature', file: 'Legislature.json', link: 'quiz.html?quiz=Legislature.json', category: 'Polity', lastUpdated: '2026-08-16' },
-  { name: 'Miscellaneous Topics of Indian Constitution and Polity', file: 'MiscellaneousTopicsofIndianConstitutionandPolity.json', link: 'quiz.html?quiz=MiscellaneousTopicsofIndianConstitutionandPolity.json', category: 'Polity', lastUpdated: '2026-08-16' },
-  { name: 'Preamble', file: 'Preamble.json', link: 'quiz.html?quiz=Preamble.json', category: 'Polity', lastUpdated: '2026-08-16' },
+  <title>UPSC & State PSC Smart Practice Portal</title>
   
-  // BA Digital Awareness Series
-  { name: 'Digital Awareness BA All IMP Q.P1', file: '105.json', link: 'quiz.html?quiz=105.json', category: 'BA', lastUpdated: '2026-08-02' },
-  { name: 'Digital Awareness BA All IMP Q.P2', file: '106.json', link: 'quiz.html?quiz=106.json', category: 'BA', lastUpdated: '2026-08-02' },
-  { name: 'Digital Awareness BA All IMP Q.P3', file: '107.json', link: 'quiz.html?quiz=107.json', category: 'BA', lastUpdated: '2026-08-02' },
+  <!-- External CSS Link -->
+  <link rel="stylesheet" href="style.css">
+  
+  <!-- Font Awesome Icons for UI -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+Devanagari:wght@400;500;600;700&display=swap" rel="stylesheet">
 
-  // Economics MCQs
-  { name: 'Banking 50 MCQs', file: 'Banking 50 MCQs.json', link: 'quiz.html?quiz=Banking 50 MCQs.json', category: 'Economics', lastUpdated: '2026-08-02' },
-  { name: 'Basic Introduction of economics 50 MCQs', file: 'Basic Introduction of economics 50 MCQs.json', link: 'quiz.html?quiz=Basic Introduction of economics 50 MCQs.json', category: 'Economics', lastUpdated: '2026-08-02' },
-  { name: 'India\'s securities market 50 MCQs', file: 'India\'s securities market 50 MCQs.json', link: 'quiz.html?quiz=India\'s securities market 50 MCQs.json', category: 'Economics', lastUpdated: '2026-08-02' },
-  { name: 'Inflation 50 MCQs', file: 'Inflation 50 MCQs.json', link: 'quiz.html?quiz=Inflation 50 MCQs.json', category: 'Economics', lastUpdated: '2026-08-02' },
-  { name: 'Monetary policy 50 MCQs', file: 'Monetary policy 50 MCQs.json', link: 'quiz.html?quiz=Monetary policy 50 MCQs.json', category: 'Economics', lastUpdated: '2026-08-02' },
-  { name: 'Money and Money Supply 50 MCQs', file: 'Money and Money Supply 50 MCQs.json', link: 'quiz.html?quiz=Money and Money Supply 50 MCQs.json', category: 'Economics', lastUpdated: '2026-08-02' },
-  { name: 'National Income 50 MCQs', file: 'National Income 50 MCQs.json', link: 'quiz.html?quiz=National Income 50 MCQs.json', category: 'Economics', lastUpdated: '2026-08-02' },
-  { name: 'Tax 50 MCQs', file: 'Tax 50 MCQs.json', link: 'quiz.html?quiz=Tax 50 MCQs.json', category: 'Economics', lastUpdated: '2026-08-02' },
-  { name: 'Growth vs Development 50 MCQs', file: 'growth vs devlopment 50 MCQs.json', link: 'quiz.html?quiz=growth vs devlopment 50 MCQs.json', category: 'Economics', lastUpdated: '2026-08-02' },
+  <style>
+    /* Global & Responsive Inline Base Styles */
+    :root {
+      --primary-color: #2563eb;
+      --primary-dark: #1d4ed8;
+      --bg-light: #f8fafc;
+      --card-bg: #ffffff;
+      --text-main: #1e293b;
+      --text-muted: #64748b;
+      --border-color: #e2e8f0;
+      --shadow-sm: 0 2px 4px rgba(0,0,0,0.05);
+      --shadow-md: 0 6px 18px rgba(0,0,0,0.08);
+    }
 
-  // Practice SETs
-  { name: 'SET-A Mentorship 2027', file: 'SET-A.json', link: 'quiz.html?quiz=SET-A.json', category: 'Practice SETs', lastUpdated: '2026-06-02' },
-  { name: 'SET-C Mentorship 2027', file: 'SET-C.json', link: 'quiz.html?quiz=SET-C.json', category: 'Practice SETs', lastUpdated: '2026-06-02' },
-  { name: 'SET-D Mentorship 2027', file: 'SET-D.json', link: 'quiz.html?quiz=SET-D.json', category: 'Practice SETs', lastUpdated: '2026-06-02' }
-];
-    let currentCategory = 'All';
-    let currentSortOrder = 'latest';
-    const grid = document.getElementById('quizGrid');
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      font-family: 'Inter', 'Noto Sans Devanagari', sans-serif;
+    }
 
-    function renderQuizzes() {
-      let result = currentCategory === 'All' 
-        ? [...quizzes] 
-        : quizzes.filter(q => q.category === currentCategory);
+    body {
+      background-color: var(--bg-light);
+      color: var(--text-main);
+      line-height: 1.6;
+    }
 
-      if (currentSortOrder === 'az') {
-        result.sort((a, b) => a.name.localeCompare(b.name));
-      } else if (currentSortOrder === 'za') {
-        result.sort((a, b) => b.name.localeCompare(a.name));
-      } else if (currentSortOrder === 'latest') {
-        result.sort((a, b) => new Date(b.lastUpdated) - new Date(a.lastUpdated));
+    /* Header & Navigation Bar */
+    .main-header {
+      position: sticky;
+      top: 0;
+      background: rgba(255, 255, 255, 0.95);
+      backdrop-filter: blur(12px);
+      box-shadow: var(--shadow-sm);
+      border-bottom: 1px solid var(--border-color);
+      z-index: 1000;
+    }
+
+    .nav-container {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 12px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    .logo a {
+      font-size: 1.25rem;
+      font-weight: 700;
+      color: var(--primary-color);
+      text-decoration: none;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .nav-list {
+      display: flex;
+      list-style: none;
+      gap: 10px;
+      align-items: center;
+    }
+
+    .nav-item {
+      position: relative;
+    }
+
+    .nav-item > a {
+      text-decoration: none;
+      color: var(--text-main);
+      font-size: 0.95rem;
+      font-weight: 500;
+      padding: 8px 14px;
+      border-radius: 6px;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      transition: all 0.2s ease;
+    }
+
+    .nav-item > a:hover {
+      background-color: #eff6ff;
+      color: var(--primary-color);
+    }
+
+    /* Dropdown Menus */
+    .dropdown-menu {
+      display: none;
+      position: absolute;
+      top: 100%;
+      left: 0;
+      background: #ffffff;
+      min-width: 250px;
+      box-shadow: var(--shadow-md);
+      border-radius: 8px;
+      list-style: none;
+      padding: 8px 0;
+      margin-top: 4px;
+      z-index: 1100;
+      border: 1px solid var(--border-color);
+    }
+
+    .dropdown-menu li a {
+      padding: 10px 18px;
+      color: var(--text-main);
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.9rem;
+      text-decoration: none;
+      transition: all 0.2s ease;
+    }
+
+    .dropdown-menu li a:hover {
+      background-color: #eff6ff;
+      color: var(--primary-color);
+      padding-left: 22px;
+    }
+
+    @media (min-width: 769px) {
+      .dropdown:hover .dropdown-menu {
+        display: block;
+      }
+    }
+
+    /* Hamburger Button */
+    .hamburger-btn {
+      display: none;
+      flex-direction: column;
+      gap: 5px;
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 6px;
+    }
+
+    .hamburger-btn span {
+      width: 24px;
+      height: 3px;
+      background-color: var(--text-main);
+      border-radius: 3px;
+      transition: all 0.3s ease;
+    }
+
+    /* Mobile View */
+    @media (max-width: 768px) {
+      .hamburger-btn {
+        display: flex;
       }
 
-      if (result.length === 0) {
-        grid.innerHTML = `<p class="no-tests">इस श्रेणी में अभी कोई टेस्ट उपलब्ध नहीं है।</p>`;
-        return;
+      .nav-menu {
+        display: none;
+        position: absolute;
+        top: 100%;
+        left: 0;
+        width: 100%;
+        background: #ffffff;
+        box-shadow: var(--shadow-md);
+        padding: 15px 0;
+        border-bottom: 1px solid var(--border-color);
       }
 
-      grid.innerHTML = result.map(q => `
-        <a class="quiz-card" href="${q.link}">
-          <span class="card-badge">${q.category}</span>
-          <h3>${q.name}</h3>
-          <p>Updated: ${q.lastUpdated}</p>
-          <span>Start Quiz →</span>
+      .nav-menu.active {
+        display: block;
+      }
+
+      .nav-list {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0;
+      }
+
+      .nav-item {
+        width: 100%;
+      }
+
+      .nav-item > a {
+        padding: 12px 20px;
+        width: 100%;
+        border-radius: 0;
+      }
+
+      .dropdown-menu {
+        position: static;
+        box-shadow: none;
+        background-color: #f8fafc;
+        border: none;
+        padding-left: 15px;
+        border-top: 1px solid var(--border-color);
+      }
+
+      .dropdown.active .dropdown-menu {
+        display: block;
+      }
+    }
+
+    /* Main Container & Sections */
+    .main-container {
+      max-width: 1200px;
+      margin: 30px auto 60px;
+      padding: 0 20px;
+    }
+
+    .hero-banner {
+      background: linear-gradient(135deg, #1e3a8a 0%, #2563eb 100%);
+      color: white;
+      padding: 40px 24px;
+      border-radius: 16px;
+      text-align: center;
+      margin-bottom: 40px;
+      box-shadow: var(--shadow-md);
+    }
+
+    .hero-banner h1 {
+      font-size: 2rem;
+      margin-bottom: 10px;
+    }
+
+    .hero-banner p {
+      font-size: 1.05rem;
+      opacity: 0.9;
+      max-width: 700px;
+      margin: 0 auto;
+    }
+
+    .content-section {
+      margin-bottom: 50px;
+    }
+
+    .section-title {
+      font-size: 1.4rem;
+      color: var(--text-main);
+      margin-bottom: 8px;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .section-subtitle {
+      color: var(--text-muted);
+      font-size: 0.95rem;
+      margin-bottom: 20px;
+    }
+
+    /* Cards Grid */
+    .card-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+      gap: 20px;
+    }
+
+    .info-card {
+      background: var(--card-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 12px;
+      padding: 22px;
+      display: flex;
+      flex-direction: column;
+      justify-content: space-between;
+      box-shadow: var(--shadow-sm);
+      transition: all 0.2s ease;
+    }
+
+    .info-card:hover {
+      transform: translateY(-4px);
+      box-shadow: var(--shadow-md);
+    }
+
+    .card-icon {
+      font-size: 2rem;
+      margin-bottom: 12px;
+    }
+
+    .card-icon.pdf { color: #dc2626; }
+    .card-icon.quiz { color: #2563eb; }
+
+    .info-card h3 {
+      font-size: 1.15rem;
+      color: var(--text-main);
+      margin-bottom: 6px;
+    }
+
+    .info-card p {
+      font-size: 0.9rem;
+      color: var(--text-muted);
+      margin-bottom: 18px;
+    }
+
+    .btn-action {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 8px;
+      padding: 10px 16px;
+      border-radius: 8px;
+      text-decoration: none;
+      font-weight: 500;
+      font-size: 0.9rem;
+      transition: all 0.2s ease;
+    }
+
+    .btn-primary {
+      background-color: var(--primary-color);
+      color: white !important;
+    }
+
+    .btn-primary:hover {
+      background-color: var(--primary-dark);
+    }
+
+    /* Test Series Table */
+    .table-responsive {
+      overflow-x: auto;
+      background: var(--card-bg);
+      border-radius: 12px;
+      border: 1px solid var(--border-color);
+      box-shadow: var(--shadow-sm);
+    }
+
+    .custom-table {
+      width: 100%;
+      border-collapse: collapse;
+      text-align: left;
+    }
+
+    .custom-table th, .custom-table td {
+      padding: 14px 18px;
+      border-bottom: 1px solid var(--border-color);
+      font-size: 0.92rem;
+    }
+
+    .custom-table th {
+      background-color: #f1f5f9;
+      color: #334155;
+      font-weight: 600;
+    }
+
+    .badge-code {
+      display: inline-block;
+      padding: 4px 10px;
+      background-color: #e0f2fe;
+      color: #0369a1;
+      border-radius: 6px;
+      font-weight: 600;
+      font-size: 0.85rem;
+    }
+
+    .btn-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      padding: 6px 12px;
+      border-radius: 6px;
+      font-size: 0.85rem;
+      text-decoration: none;
+      font-weight: 500;
+      margin-right: 6px;
+    }
+
+    .btn-qp {
+      background-color: #fee2e2;
+      color: #b91c1c;
+    }
+
+    .btn-sol {
+      background-color: #dcfce7;
+      color: #15803d;
+    }
+
+    .btn-interactive {
+      background-color: #eff6ff;
+      color: #1d4ed8;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- ==================== HEADER & HAMBURGER NAVIGATION ==================== -->
+  <header class="main-header">
+    <div class="nav-container">
+      <div class="logo">
+        <a href="index.html">
+          <i class="fa-solid fa-graduation-cap"></i> UPSC Practice Hub
         </a>
-      `).join('');
-    }
+      </div>
 
-    function handleFilter(category, event) {
-      currentCategory = category;
-      const buttons = document.querySelectorAll('.tab-btn');
-      buttons.forEach(btn => btn.classList.remove('active'));
-      if (event && event.target) event.target.classList.add('active');
-      renderQuizzes();
-    }
+      <!-- Hamburger Button for Mobile -->
+      <button class="hamburger-btn" id="hamburger-btn" aria-label="Menu Toggle">
+        <span></span>
+        <span></span>
+        <span></span>
+      </button>
 
-    function handleSort(order) {
-      currentSortOrder = order;
-      renderQuizzes();
-    }
+      <!-- Full Navigation Menu -->
+      <nav class="nav-menu" id="nav-menu">
+        <ul class="nav-list">
+          
+          <!-- Dropdown 1: PYQ (Topic Wise Quiz) -->
+          <li class="nav-item dropdown">
+            <a href="#" class="dropdown-toggle">
+              <i class="fa-solid fa-layer-group"></i> PYQ Topics <i class="fa-solid fa-chevron-down" style="font-size:0.75rem;"></i>
+            </a>
+            <ul class="dropdown-menu">
+              <li><a href="quiz.html?file=Executive.json"><i class="fa-solid fa-landmark"></i> भारतीय राजव्यवस्था (Polity)</a></li>
+              <li><a href="quiz.html?file=Inflation 50 MCQs.json"><i class="fa-solid fa-chart-line"></i> अर्थव्यवस्था (Economics)</a></li>
+              <li><a href="quiz.html?file=101.json"><i class="fa-solid fa-landmark-dome"></i> भारतीय इतिहास (History)</a></li>
+              <li><a href="quiz.html?file=102.json"><i class="fa-solid fa-flask"></i> सामान्य विज्ञान (General Science)</a></li>
+              <li><a href="quiz.html?file=103.json"><i class="fa-solid fa-microchip"></i> साइंस & टेक (Science & Tech)</a></li>
+              <li><a href="quiz.html?file=104.json"><i class="fa-solid fa-leaf"></i> पर्यावरण एवं पारिस्थितिकी (Environment)</a></li>
+            </ul>
+          </li>
 
-    renderQuizzes();
+          <!-- Dropdown 2: Test Series -->
+          <li class="nav-item dropdown">
+            <a href="#" class="dropdown-toggle">
+              <i class="fa-solid fa-pen-to-square"></i> Test Series <i class="fa-solid fa-chevron-down" style="font-size:0.75rem;"></i>
+            </a>
+            <ul class="dropdown-menu">
+              <li><a href="quiz.html?file=SET-A.json"><i class="fa-solid fa-file-signature"></i> DTS 2701 (Full Mock 1)</a></li>
+              <li><a href="quiz.html?file=SET-C.json"><i class="fa-solid fa-file-signature"></i> DTS 2702 (Polity Special)</a></li>
+              <li><a href="quiz.html?file=SET-D.json"><i class="fa-solid fa-file-signature"></i> DTS 2703 (Economy Special)</a></li>
+              <li><a href="#test-series-pdf-section"><i class="fa-solid fa-file-pdf"></i> All Test Series PDFs</a></li>
+            </ul>
+          </li>
+
+          <!-- Dropdown 3: अन्य विषय अभ्यास प्रश्न -->
+          <li class="nav-item dropdown">
+            <a href="#" class="dropdown-toggle">
+              <i class="fa-solid fa-book-bookmark"></i> अन्य विषय <i class="fa-solid fa-chevron-down" style="font-size:0.75rem;"></i>
+            </a>
+            <ul class="dropdown-menu">
+              <li><a href="quiz.html?file=105.json"><i class="fa-solid fa-earth-americas"></i> भारत एवं विश्व भूगोल (Geography)</a></li>
+              <li><a href="quiz.html?file=106.json"><i class="fa-solid fa-globe"></i> अंतर्राष्ट्रीय संबंध (IR)</a></li>
+              <li><a href="quiz.html?file=107.json"><i class="fa-solid fa-building-columns"></i> शासन व्यवस्था (Governance)</a></li>
+              <li><a href="quiz.html?file=108.json"><i class="fa-solid fa-scale-balanced"></i> नीतिशास्त्र (Ethics)</a></li>
+            </ul>
+          </li>
+
+          <!-- Dropdown 4: अन्य / विविध (Miscellaneous Quizzes) -->
+          <li class="nav-item dropdown">
+            <a href="#" class="dropdown-toggle">
+              <i class="fa-solid fa-boxes-stacked"></i> विविध (Misc) <i class="fa-solid fa-chevron-down" style="font-size:0.75rem;"></i>
+            </a>
+            <ul class="dropdown-menu">
+              <li><a href="quiz.html?file=Banking 50 MCQs.json"><i class="fa-solid fa-piggy-bank"></i> Banking 50 MCQs</a></li>
+              <li><a href="quiz.html?file=Money and Money Supply 50 MCQs.json"><i class="fa-solid fa-money-bill-wave"></i> Money & Supply MCQs</a></li>
+              <li><a href="quiz.html?file=National Income 50 MCQs.json"><i class="fa-solid fa-coins"></i> National Income MCQs</a></li>
+              <li><a href="quiz.html?file=India's securities market 50 MCQs.json"><i class="fa-solid fa-arrow-trend-up"></i> Securities Market MCQs</a></li>
+              <li><a href="quiz.html?file=Tax 50 MCQs.json"><i class="fa-solid fa-receipt"></i> Tax System MCQs</a></li>
+              <li><a href="quiz.html?file=MiscellaneousTopicsofIndianConstitutionandPolity.json"><i class="fa-solid fa-gavel"></i> Constitution Misc.</a></li>
+            </ul>
+          </li>
+
+          <!-- Direct Link to Notes Section -->
+          <li class="nav-item">
+            <a href="#notes-section" class="nav-link">
+              <i class="fa-solid fa-file-pdf"></i> Notes PDFs
+            </a>
+          </li>
+
+        </ul>
+      </nav>
+    </div>
+  </header>
+
+  <!-- ==================== MAIN CONTENT CONTAINER ==================== -->
+  <main class="main-container">
+    
+    <!-- Hero Banner -->
+    <section class="hero-banner">
+      <h1>UPSC & State PSC Smart Practice Portal</h1>
+      <p>ऑनलाइन टॉपिक-वाइज़ क्विज़ हल करें, 2026 टेस्ट सीरीज़ पेपर्स प्रैक्टिस करें और क्लास नोट्स सीधे Google Drive से एक्सेस करें।</p>
+    </section>
+
+    <!-- ==================== 1. NOTES PDF SECTION ==================== -->
+    <section class="content-section" id="notes-section">
+      <h2 class="section-title"><i class="fa-solid fa-book-open"></i> विषयवार क्लास नोट्स (Drive PDFs)</h2>
+      <p class="section-subtitle">अपनी रिवीज़न के लिए सभी विषयों के क्लास नोट्स सीधे डाउनलोड व रीड करें</p>
+
+      <div class="card-grid">
+        
+        <!-- Note Card 1: Polity -->
+        <div class="info-card">
+          <div>
+            <div class="card-icon pdf"><i class="fa-solid fa-file-pdf"></i></div>
+            <h3>भारतीय राजव्यवस्था एवं संविधान</h3>
+            <p>अनुच्छेद, संवैधानिक संशोधन, मौलिक अधिकार और संघ-राज्य संबंध के संपूर्ण नोट्स।</p>
+          </div>
+          <!-- Apni Google Drive Link Yahan Paste Karein -->
+          <a href="https://drive.google.com/file/d/YOUR_POLITY_NOTES_FILE_ID/view" target="_blank" class="btn-action btn-primary">
+            <i class="fa-solid fa-arrow-up-right-from-square"></i> Open Drive PDF
+          </a>
+        </div>
+
+        <!-- Note Card 2: Economics -->
+        <div class="info-card">
+          <div>
+            <div class="card-icon pdf"><i class="fa-solid fa-file-pdf"></i></div>
+            <h3>भारतीय अर्थव्यवस्था (Economics)</h3>
+            <p>राष्ट्रीय आय, मौद्रिक नीति, मुद्रास्फीति, बैंकिंग एवं बजट संबंधित विस्तृत नोट्स।</p>
+          </div>
+          <!-- Apni Google Drive Link Yahan Paste Karein -->
+          <a href="https://drive.google.com/file/d/YOUR_ECONOMICS_NOTES_FILE_ID/view" target="_blank" class="btn-action btn-primary">
+            <i class="fa-solid fa-arrow-up-right-from-square"></i> Open Drive PDF
+          </a>
+        </div>
+
+        <!-- Note Card 3: History -->
+        <div class="info-card">
+          <div>
+            <div class="card-icon pdf"><i class="fa-solid fa-file-pdf"></i></div>
+            <h3>आधुनिक भारत का इतिहास</h3>
+            <p>ब्रिटिश नीतियां, 1857 की क्रांति, राष्ट्रीय आंदोलन और गांधीवादी युग का संकलन।</p>
+          </div>
+          <!-- Apni Google Drive Link Yahan Paste Karein -->
+          <a href="https://drive.google.com/file/d/YOUR_HISTORY_NOTES_FILE_ID/view" target="_blank" class="btn-action btn-primary">
+            <i class="fa-solid fa-arrow-up-right-from-square"></i> Open Drive PDF
+          </a>
+        </div>
+
+        <!-- Note Card 4: Science & Tech / Environment -->
+        <div class="info-card">
+          <div>
+            <div class="card-icon pdf"><i class="fa-solid fa-file-pdf"></i></div>
+            <h3>पर्यावरण एवं विज्ञान प्रौद्योगिकी</h3>
+            <p>जैव विविधता, जलवायु परिवर्तन, राष्ट्रीय उद्यान एवं अंतरिक्ष प्रौद्योगिकी नोट्स।</p>
+          </div>
+          <!-- Apni Google Drive Link Yahan Paste Karein -->
+          <a href="https://drive.google.com/file/d/YOUR_ENV_NOTES_FILE_ID/view" target="_blank" class="btn-action btn-primary">
+            <i class="fa-solid fa-arrow-up-right-from-square"></i> Open Drive PDF
+          </a>
+        </div>
+
+      </div>
+    </section>
+
+    <!-- ==================== 2. TEST SERIES 2026 PDF SECTION ==================== -->
+    <section class="content-section" id="test-series-pdf-section">
+      <h2 class="section-title"><i class="fa-solid fa-clipboard-check"></i> प्रीलिम्स टेस्ट सीरीज़ 2026 पेपर्स & सोल्यूशंस</h2>
+      <p class="section-subtitle">इस वर्ष की टेस्ट सीरीज़ के प्रश्न-पत्र (QP) और विस्तृत उत्तर कुंजी (Solution)</p>
+
+      <div class="table-responsive">
+        <table class="custom-table">
+          <thead>
+            <tr>
+              <th>Test Code</th>
+              <th>विषय / सिलेबस</th>
+              <th>कुल प्रश्न</th>
+              <th>Question Paper</th>
+              <th>Answer & Solution</th>
+              <th>Interactive Quiz</th>
+            </tr>
+          </thead>
+          <tbody>
+            
+            <!-- Row 1: DTS 2701 -->
+            <tr>
+              <td><span class="badge-code">DTS 2701</span></td>
+              <td><strong>भारतीय राजव्यवस्था</strong> (संवैधानिक ढांचा, मौलिक अधिकार व DPSP)</td>
+              <td>100 MCQs</td>
+              <td>
+                <a href="https://drive.google.com/file/d/YOUR_DTS2701_QP_ID/view" target="_blank" class="btn-pill btn-qp">
+                  <i class="fa-solid fa-file-pdf"></i> Paper
+                </a>
+              </td>
+              <td>
+                <a href="https://drive.google.com/file/d/YOUR_DTS2701_SOL_ID/view" target="_blank" class="btn-pill btn-sol">
+                  <i class="fa-solid fa-key"></i> Solution
+                </a>
+              </td>
+              <td>
+                <a href="quiz.html?file=SET-A.json" class="btn-pill btn-interactive">
+                  <i class="fa-solid fa-play"></i> Start Quiz
+                </a>
+              </td>
+            </tr>
+
+            <!-- Row 2: DTS 2702 -->
+            <tr>
+              <td><span class="badge-code">DTS 2702</span></td>
+              <td><strong>भारतीय अर्थव्यवस्था</strong> (राष्ट्रीय आय, बैंकिंग व मौद्रिक नीति)</td>
+              <td>100 MCQs</td>
+              <td>
+                <a href="https://drive.google.com/file/d/YOUR_DTS2702_QP_ID/view" target="_blank" class="btn-pill btn-qp">
+                  <i class="fa-solid fa-file-pdf"></i> Paper
+                </a>
+              </td>
+              <td>
+                <a href="https://drive.google.com/file/d/YOUR_DTS2702_SOL_ID/view" target="_blank" class="btn-pill btn-sol">
+                  <i class="fa-solid fa-key"></i> Solution
+                </a>
+              </td>
+              <td>
+                <a href="quiz.html?file=SET-C.json" class="btn-pill btn-interactive">
+                  <i class="fa-solid fa-play"></i> Start Quiz
+                </a>
+              </td>
+            </tr>
+
+            <!-- Row 3: DTS 2703 -->
+            <tr>
+              <td><span class="badge-code">DTS 2703</span></td>
+              <td><strong>आधुनिक भारत का इतिहास</strong> (1757 से 1947 स्वतंत्रता संघर्ष)</td>
+              <td>100 MCQs</td>
+              <td>
+                <a href="https://drive.google.com/file/d/YOUR_DTS2703_QP_ID/view" target="_blank" class="btn-pill btn-qp">
+                  <i class="fa-solid fa-file-pdf"></i> Paper
+                </a>
+              </td>
+              <td>
+                <a href="https://drive.google.com/file/d/YOUR_DTS2703_SOL_ID/view" target="_blank" class="btn-pill btn-sol">
+                  <i class="fa-solid fa-key"></i> Solution
+                </a>
+              </td>
+              <td>
+                <a href="quiz.html?file=SET-D.json" class="btn-pill btn-interactive">
+                  <i class="fa-solid fa-play"></i> Start Quiz
+                </a>
+              </td>
+            </tr>
+
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ==================== INTERACTIVE JAVASCRIPT LOGIC ==================== -->
+  <script>
+    document.addEventListener('DOMContentLoaded', () => {
+      const hamburgerBtn = document.getElementById('hamburger-btn');
+      const navMenu = document.getElementById('nav-menu');
+      const dropdowns = document.querySelectorAll('.dropdown');
+
+      // 1. Toggle Hamburger Menu on Mobile
+      if (hamburgerBtn && navMenu) {
+        hamburgerBtn.addEventListener('click', (e) => {
+          e.stopPropagation();
+          navMenu.classList.toggle('active');
+        });
+      }
+
+      // 2. Toggle Dropdown on Mobile screen tap
+      dropdowns.forEach(dropdown => {
+        const toggle = dropdown.querySelector('.dropdown-toggle');
+        if (toggle) {
+          toggle.addEventListener('click', (e) => {
+            if (window.innerWidth <= 768) {
+              e.preventDefault();
+              e.stopPropagation();
+              // Close other open dropdowns
+              dropdowns.forEach(other => {
+                if (other !== dropdown) other.classList.remove('active');
+              });
+              dropdown.classList.toggle('active');
+            }
+          });
+        }
+      });
+
+      // 3. Close Menu when clicking outside
+      document.addEventListener('click', (e) => {
+        if (!e.target.closest('.nav-container')) {
+          if (navMenu) navMenu.classList.remove('active');
+          dropdowns.forEach(d => d.classList.remove('active'));
+        }
+      });
+    });
   </script>
+  <script src="script.js"></script>
 </body>
 </html>
